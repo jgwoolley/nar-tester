@@ -1,0 +1,35 @@
+# A working example that also exercises controllerServices: LookupAttribute
+# (org.apache.nifi.processors.standard.LookupAttribute, from nifi-standard-nar)
+# looks up a value via a SimpleKeyValueLookupService controller service
+# (org.apache.nifi.lookup.SimpleKeyValueLookupService, from a *different*
+# NAR: nifi-lookup-services-nar) and adds it as a flowfile attribute.
+# See test.sh at the repo root.
+
+processorClass: org.apache.nifi.processors.standard.LookupAttribute
+
+properties:
+  # References the controller service below by its identifier.
+  Lookup Service: planet-lookup
+  # Dynamic property: adds an attribute named "greeting" whose value is
+  # whatever the lookup service returns for the key "planet".
+  greeting: planet
+
+attributes:
+  filename: example-input.txt
+
+relationships:
+  - matched
+  - unmatched
+  - failure
+
+runIterations: 1
+
+controllerServices:
+  - identifier: planet-lookup
+    implementationClass: org.apache.nifi.lookup.SimpleKeyValueLookupService
+    # Lives in a different NAR than the processor -- requires
+    # --nifi-properties / --nar-library so the two can be cross-resolved.
+    nar: nifi/lib/nifi-lookup-services-nar-2.12.0.nar
+    properties:
+      # Dynamic property: key "planet" looks up to value "Earth".
+      planet: Earth
