@@ -1,4 +1,4 @@
-package com.example.nartester;
+package com.nf3t.flowtester;
 
 import java.io.IOException;
 import java.nio.file.Files;

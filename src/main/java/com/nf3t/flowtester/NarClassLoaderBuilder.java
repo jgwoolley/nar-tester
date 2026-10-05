@@ -1,4 +1,4 @@
-package com.example.nartester;
+package com.nf3t.flowtester;
 
 import java.io.File;
 import java.io.IOException;
@@ -39,7 +39,7 @@ public final class NarClassLoaderBuilder {
     }
 
     public static Path unpack(File narFile) throws IOException {
-        Path workingDir = Files.createTempDirectory("nar-tester-");
+        Path workingDir = Files.createTempDirectory("flow-tester-");
         try (ZipFile zip = new ZipFile(narFile)) {
             Enumeration<? extends ZipEntry> entries = zip.entries();
             while (entries.hasMoreElements()) {

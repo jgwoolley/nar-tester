@@ -1,7 +1,8 @@
-package com.example.nartester;
+package com.nf3t.flowtester;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
+import org.apache.nifi.flow.VersionedControllerService;
+import org.apache.nifi.flow.VersionedProcessGroup;
+import org.apache.nifi.flow.VersionedProcessor;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
 
@@ -35,11 +36,10 @@ public class DepsCommand implements Callable<Integer> {
             description = "Fully-qualified controller service class to resolve. Repeatable.")
     private List<String> controllerServiceClasses = new ArrayList<>();
 
-    @Option(names = {"-c", "--config"},
-            description = "Optional: also pull processorClass / controllerServices[].implementationClass " +
-                    "out of a nar-tester YAML (or JSON) config file, on top of any --processor / " +
-                    "--controller-service given directly.")
-    private File configFile;
+    @Option(names = {"-f", "--flow"},
+            description = "Optional: also pull every processor/controller service type out of a flow " +
+                    "definition JSON, on top of any --processor / --controller-service given directly.")
+    private File flowFile;
 
     @Option(names = {"-p", "--nifi-properties"},
             description = "Path to a NiFi instance's nifi.properties file, or its home directory " +
@@ -58,25 +58,23 @@ public class DepsCommand implements Callable<Integer> {
             Set<String> processors = new LinkedHashSet<>(processorClasses);
             Set<String> controllerServices = new LinkedHashSet<>(controllerServiceClasses);
 
-            if (configFile != null) {
-                if (!configFile.isFile()) {
-                    System.err.println("Config file not found: " + configFile);
+            if (flowFile != null) {
+                if (!flowFile.isFile()) {
+                    System.err.println("Flow definition file not found: " + flowFile);
                     return 2;
                 }
-                ObjectMapper yamlMapper = new ObjectMapper(new YAMLFactory());
-                TestConfig config = yamlMapper.readValue(configFile, TestConfig.class);
-                if (config.getProcessorClass() != null && !config.getProcessorClass().isBlank()) {
-                    processors.add(config.getProcessorClass());
-                }
-                for (ControllerServiceConfig csConfig : config.getControllerServices()) {
-                    if (csConfig.getImplementationClass() != null && !csConfig.getImplementationClass().isBlank()) {
-                        controllerServices.add(csConfig.getImplementationClass());
+                VersionedProcessGroup flow = FlowDefinitionLoader.load(flowFile);
+                FlowGraph graph = new FlowGraph(flow);
+                for (VersionedProcessor processor : graph.processors()) {
+                    processors.add(processor.getType());
+                    for (VersionedControllerService service : ControllerServiceResolver.resolve(graph, processor).values()) {
+                        controllerServices.add(service.getType());
                     }
                 }
             }
 
             if (processors.isEmpty() && controllerServices.isEmpty()) {
-                System.err.println("Specify at least one --processor / --controller-service, or --config.");
+                System.err.println("Specify at least one --processor / --controller-service, or --flow.");
                 return 2;
             }
 

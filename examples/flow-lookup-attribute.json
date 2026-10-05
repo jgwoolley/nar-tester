@@ -1,0 +1,64 @@
+{
+  "flowContents": {
+    "identifier": "lookup-attribute-flow",
+    "name": "Lookup Attribute Example",
+    "processors": [
+      {
+        "identifier": "update-attribute-1",
+        "name": "Update Attribute",
+        "type": "org.apache.nifi.processors.attributes.UpdateAttribute",
+        "bundle": {
+          "group": "org.apache.nifi",
+          "artifact": "nifi-update-attribute-nar",
+          "version": "2.12.0"
+        },
+        "properties": {
+          "greeting": "hello"
+        }
+      },
+      {
+        "identifier": "lookup-attribute-1",
+        "name": "Lookup Attribute",
+        "type": "org.apache.nifi.processors.standard.LookupAttribute",
+        "bundle": {
+          "group": "org.apache.nifi",
+          "artifact": "nifi-standard-nar",
+          "version": "2.12.0"
+        },
+        "properties": {
+          "Lookup Service": "planet-lookup",
+          "greeting": "planet"
+        }
+      }
+    ],
+    "controllerServices": [
+      {
+        "identifier": "planet-lookup",
+        "name": "Planet Lookup",
+        "type": "org.apache.nifi.lookup.SimpleKeyValueLookupService",
+        "bundle": {
+          "group": "org.apache.nifi",
+          "artifact": "nifi-lookup-services-nar",
+          "version": "2.12.0"
+        },
+        "properties": {
+          "planet": "Earth"
+        }
+      }
+    ],
+    "connections": [
+      {
+        "identifier": "update-attribute-to-lookup-attribute",
+        "source": {
+          "id": "update-attribute-1",
+          "type": "PROCESSOR"
+        },
+        "destination": {
+          "id": "lookup-attribute-1",
+          "type": "PROCESSOR"
+        },
+        "selectedRelationships": ["success"]
+      }
+    ]
+  }
+}

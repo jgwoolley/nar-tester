@@ -1,0 +1,14 @@
+{
+  "$schema": "./flow-tester-require-output.schema.json",
+  "outputs": {
+    "Lookup_Attribute-matched": [
+      {
+        "content": "Hello from nar-tester!\n",
+        "attributes": {
+          "filename": "example-input.txt",
+          "greeting": "Earth"
+        }
+      }
+    ]
+  }
+}

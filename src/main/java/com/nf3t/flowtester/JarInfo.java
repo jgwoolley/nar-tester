@@ -1,4 +1,4 @@
-package com.example.nartester;
+package com.nf3t.flowtester;
 
 /**
  * One bundled dependency jar loaded from a NAR, with its Maven coordinates

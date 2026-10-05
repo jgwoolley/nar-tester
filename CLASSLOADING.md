@@ -1,6 +1,6 @@
 # NAR class loading: why not NiFi's own `NarClassLoader`?
 
-`nar-tester` needs to do the same job NiFi's framework does at startup:
+`flow-tester` needs to do the same job NiFi's framework does at startup:
 turn a `.nar` file (or a chain of them) into a working classloader for a
 processor or controller service. It doesn't reuse NiFi's own machinery for
 this (`org.apache.nifi.nar.NarClassLoaders`, in `nifi-nar-utils`); instead
@@ -27,15 +27,15 @@ At framework startup, NiFi's `NarClassLoaders`:
   that indexes every discovered extension, a `FlowController` that owns the
   running flow, `StateManager`/bulletin/provenance services, and NiFi's own
   docs-generation pass that produces `META-INF/docs/extension-manifest.xml`
-  for each NAR (the same file `NarLocator` reads for `--nar` auto-discovery
-  and `deps`).
+  for each NAR (the same file `NarLocator` reads for NAR auto-discovery and
+  `deps`).
 
 ## Why not depend on it directly
 
 1. **Not a public API.** `nifi-nar-utils` is internal to the NiFi framework
    — it isn't published as something meant to be embedded in a standalone
    tool, and nothing stops its internals from changing across NiFi releases
-   without notice. Building on it would tie `nar-tester` to implementation
+   without notice. Building on it would tie `flow-tester` to implementation
    details rather than a contract.
 2. **Heavy dependency footprint.** Pulling in `nifi-nar-utils` (and its
    transitive graph — much of `nifi-framework-core`) just to get
@@ -45,13 +45,13 @@ At framework startup, NiFi's `NarClassLoaders`:
    `FlowController`, `ExtensionManager`, and other framework services wired
    up around it. Using it standalone would mean either faking a large
    surface of that machinery, or dragging in most of an embedded NiFi
-   runtime — exactly what `nar-tester` exists to avoid needing.
-4. **Mismatched goal.** `nar-tester` only needs to load *one* processor (or
-   a couple of controller services) in isolation and drive it with
-   `nifi-mock`'s `TestRunner` — which itself is designed to run without a
-   real NiFi instance. Two different "no running NiFi required" tools
-   compose naturally; wiring one to depend on NiFi's full extension
-   framework would not.
+   runtime — exactly what `flow-tester` exists to avoid needing.
+4. **Mismatched goal.** `flow-tester` only needs to load the handful of
+   processors and controller services one flow actually uses, in isolation,
+   and drive each with `nifi-mock`'s `TestRunner` — which itself is designed
+   to run without a real NiFi instance. Two different "no running NiFi
+   required" tools compose naturally; wiring one to depend on NiFi's full
+   extension framework would not.
 
 ## What we do instead
 
@@ -108,9 +108,9 @@ For example, `nifi-standard-nar`'s real manifest chain is
   something this model replicates.
 - **No `ExtensionManager` validation.** There's no check that a class is a
   genuinely registered extension beyond what can be inferred from
-  `META-INF/docs/extension-manifest.xml` (used only for `--nar`
-  auto-discovery and `deps`, not for anything safety-related) or, failing
-  that, a raw scan of bundled jars.
+  `META-INF/docs/extension-manifest.xml` (used only for NAR auto-discovery
+  and `deps`, not for anything safety-related) or, failing that, a raw scan
+  of bundled jars.
 - **No instance class loading.** NiFi supports per-instance additional
   classpath resources for some processors (a property that dynamically
   extends the classpath); this tool has no equivalent.
@@ -123,7 +123,7 @@ For example, `nifi-standard-nar`'s real manifest chain is
 
 If a processor throws `ClassNotFoundException` / `NoClassDefFoundError`
 here but works fine in a real NiFi instance, it's most likely one of the
-gaps above. Start with `nar-tester deps` — it shows exactly which NARs and
+gaps above. Start with `flow-tester deps` — it shows exactly which NARs and
 jars this tool actually resolved and loaded. If the missing class isn't in
 that list, it's probably being supplied to real NiFi through a mechanism
 (the system-bundle classpath, instance class loading, ...) this simplified

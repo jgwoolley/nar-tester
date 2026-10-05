@@ -1,0 +1,5 @@
+target/
+*.class
+output/
+dependency-reduced-pom.xml
+nifi/

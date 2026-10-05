@@ -1,0 +1,17 @@
+services:
+  nifi:
+    image: apache/nifi:latest
+    ports:
+      - "8443:8443"
+      - "80:80"
+    environment:
+      SINGLE_USER_CREDENTIALS_USERNAME: admin
+      SINGLE_USER_CREDENTIALS_PASSWORD: adminadminadmin
+    volumes:
+      - nifi_conf:/opt/nifi/nifi-current/conf
+      - nifi_state:/opt/nifi/nifi-current/state
+      - ./nifi/extensions:/opt/nifi/nifi-current/extensions
+
+volumes:
+  nifi_conf:
+  nifi_state:

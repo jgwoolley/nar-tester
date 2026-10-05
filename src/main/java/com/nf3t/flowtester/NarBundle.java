@@ -1,4 +1,4 @@
-package com.example.nartester;
+package com.nf3t.flowtester;
 
 import java.io.File;
 import java.nio.file.Path;

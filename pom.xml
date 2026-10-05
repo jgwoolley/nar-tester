@@ -4,13 +4,14 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
-  <groupId>com.example</groupId>
-  <artifactId>nar-tester</artifactId>
+  <groupId>com.nf3t</groupId>
+  <artifactId>flow-tester</artifactId>
   <version>1.0.0</version>
   <packaging>jar</packaging>
 
-  <name>nar-tester</name>
-  <description>CLI for loading a processor out of a NiFi Archive (NAR) and running it against an input file for testing.</description>
+  <name>flow-tester</name>
+  <description>CLI for running a NiFi flow definition against test input, for CI/CD pipelines that build custom processors and want to catch a broken flow before it ships.</description>
+  <url>https://nf3t.com</url>
 
   <properties>
     <maven.compiler.release>21</maven.compiler.release>
@@ -22,6 +23,7 @@
     <picocli.version>4.7.6</picocli.version>
     <jackson.version>2.17.2</jackson.version>
     <slf4j.version>2.0.13</slf4j.version>
+    <jsonschema-generator.version>4.37.0</jsonschema-generator.version>
   </properties>
 
   <dependencies>
@@ -39,6 +41,13 @@
       <version>${nifi.version}</version>
     </dependency>
 
+    <!-- FlowFileUnpackagerV3: reads the input file as a FlowFile Package V3 file (attributes + content, possibly several) -->
+    <dependency>
+      <groupId>org.apache.nifi</groupId>
+      <artifactId>nifi-flowfile-packager</artifactId>
+      <version>${nifi.version}</version>
+    </dependency>
+
     <!-- CLI argument parsing -->
     <dependency>
       <groupId>info.picocli</groupId>
@@ -46,15 +55,10 @@
       <version>${picocli.version}</version>
     </dependency>
 
-    <!-- YAML/JSON config parsing and attribute output -->
+    <!-- Flow definition JSON parsing, require-output parsing, and attribute output -->
     <dependency>
       <groupId>com.fasterxml.jackson.core</groupId>
       <artifactId>jackson-databind</artifactId>
-      <version>${jackson.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>com.fasterxml.jackson.dataformat</groupId>
-      <artifactId>jackson-dataformat-yaml</artifactId>
       <version>${jackson.version}</version>
     </dependency>
 
@@ -64,10 +68,24 @@
       <artifactId>slf4j-simple</artifactId>
       <version>${slf4j.version}</version>
     </dependency>
+
+    <!-- flow-schema: generates the JSON Schema for a flow definition file straight
+         from org.apache.nifi.flow.VersionedExternalFlow via reflection, so it stays
+         in sync with whatever nifi.version is actually on the classpath. -->
+    <dependency>
+      <groupId>com.github.victools</groupId>
+      <artifactId>jsonschema-generator</artifactId>
+      <version>${jsonschema-generator.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>com.github.victools</groupId>
+      <artifactId>jsonschema-module-jackson</artifactId>
+      <version>${jsonschema-generator.version}</version>
+    </dependency>
   </dependencies>
 
   <build>
-    <finalName>nar-tester</finalName>
+    <finalName>flow-tester</finalName>
     <plugins>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
@@ -87,7 +105,7 @@
             <configuration>
               <transformers>
                 <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
-                  <mainClass>com.example.nartester.Main</mainClass>
+                  <mainClass>com.nf3t.flowtester.Main</mainClass>
                 </transformer>
               </transformers>
               <!-- Drop signature files from shaded dependency jars to avoid

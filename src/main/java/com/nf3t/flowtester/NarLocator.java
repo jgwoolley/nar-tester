@@ -1,4 +1,6 @@
-package com.example.nartester;
+package com.nf3t.flowtester;
+
+import org.apache.nifi.flow.Bundle;
 
 import java.io.File;
 import java.io.IOException;
@@ -10,6 +12,8 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.List;
+import java.util.jar.Attributes;
+import java.util.jar.Manifest;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 import java.util.zip.ZipInputStream;
@@ -46,6 +50,68 @@ public final class NarLocator {
             }
         }
         return matches;
+    }
+
+    /**
+     * Finds the NAR in libraryDirectories whose manifest coordinates
+     * (Nar-Group/Nar-Id/Nar-Version) match bundle exactly. Falls back to a
+     * Nar-Group/Nar-Id-only match (tolerating a Nar-Version mismatch, with a
+     * warning printed) if no exact match exists. Returns null if bundle is
+     * null/incomplete (as NiFi sometimes writes for a bundle it couldn't
+     * determine at design time) or nothing matches at all, so callers can
+     * fall back to {@link #findNarsProviding}.
+     */
+    public static File findNarByBundle(List<Path> libraryDirectories, Bundle bundle) throws IOException {
+        if (bundle == null || bundle.getArtifact() == null || bundle.getArtifact().isBlank()) {
+            return null;
+        }
+
+        File groupArtifactMatch = null;
+        for (Path dir : libraryDirectories) {
+            if (!Files.isDirectory(dir)) {
+                continue;
+            }
+            try (DirectoryStream<Path> stream = Files.newDirectoryStream(dir, "*.nar")) {
+                for (Path narPath : stream) {
+                    String[] coordinates = readNarCoordinates(narPath.toFile());
+                    if (coordinates == null || !bundle.getArtifact().equals(coordinates[1])) {
+                        continue;
+                    }
+                    boolean groupMatches = coordinates[0] != null && coordinates[0].equals(bundle.getGroup());
+                    boolean versionMatches = coordinates[2] != null && coordinates[2].equals(bundle.getVersion());
+                    if (groupMatches && versionMatches) {
+                        return narPath.toFile();
+                    }
+                    if (groupMatches && groupArtifactMatch == null) {
+                        groupArtifactMatch = narPath.toFile();
+                    }
+                }
+            }
+        }
+        if (groupArtifactMatch != null) {
+            System.err.println("Warning: no exact version match for " + bundle.getGroup() + ":" +
+                    bundle.getArtifact() + ":" + bundle.getVersion() + " -- using " + groupArtifactMatch +
+                    " (Nar-Id matches, Nar-Version differs).");
+        }
+        return groupArtifactMatch;
+    }
+
+    /** [Nar-Group, Nar-Id, Nar-Version] from a NAR's manifest, or null if unreadable. */
+    private static String[] readNarCoordinates(File narFile) {
+        try (ZipFile zip = new ZipFile(narFile)) {
+            ZipEntry entry = zip.getEntry("META-INF/MANIFEST.MF");
+            if (entry == null) {
+                return null;
+            }
+            Manifest manifest;
+            try (InputStream in = zip.getInputStream(entry)) {
+                manifest = new Manifest(in);
+            }
+            Attributes attrs = manifest.getMainAttributes();
+            return new String[] {attrs.getValue("Nar-Group"), attrs.getValue("Nar-Id"), attrs.getValue("Nar-Version")};
+        } catch (IOException e) {
+            return null;
+        }
     }
 
     private static boolean providesExtension(File narFile, String extensionClassName) throws IOException {

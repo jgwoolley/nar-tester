@@ -1,0 +1,44 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://nf3t.com/schemas/flow-tester-require-output.schema.json",
+  "title": "flow-tester require-output",
+  "description": "Expected output flowfiles for a flow-tester run (--require-output), keyed by output label: a relationship's <processor-name>-<relationship-name>, or an output port's name.",
+  "type": "object",
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "description": "Path or URL to this schema, for editor validation/autocomplete. Ignored by flow-tester itself."
+    },
+    "outputs": {
+      "type": "object",
+      "description": "Map of output label to the list of flowfiles expected there. A label flow-tester doesn't actually produce fails verification; a label not mentioned here is never checked.",
+      "additionalProperties": {
+        "type": "array",
+        "description": "The exact flowfiles expected at this output, in order. The count must match exactly.",
+        "items": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "content": {
+              "type": "string",
+              "description": "Exact expected content, as a UTF-8 string. Mutually exclusive with contentFile. Omit to not check content at all."
+            },
+            "contentFile": {
+              "type": "string",
+              "description": "Path (relative to this require-output file) to a file whose exact bytes are the expected content. Mutually exclusive with content."
+            },
+            "attributes": {
+              "type": "object",
+              "description": "Attributes that must match exactly. Attributes not listed here are never checked -- leave out anything dynamic (uuid, path, timestamps, ...).",
+              "additionalProperties": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "required": ["outputs"],
+  "additionalProperties": false
+}
